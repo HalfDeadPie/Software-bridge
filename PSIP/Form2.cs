@@ -26,7 +26,7 @@ namespace PSIP
         private List<PacketCommunicator> com_list;//list so vsetkymi komunikatormi
         private int actual;
         //KONSTANTY
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 10;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1;
         public Form2()
         {
             //INICIALIZACIA
@@ -54,16 +54,25 @@ namespace PSIP
         //spracovanie ramcov
         private void PacketHandler(Packet packet)
         {
-            ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//id unikatnej MAC adresy
-            SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC ADRESA
-            SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//cas prijatia posledneho ramca
-            mac_table.Items.Add(SrcMac);//pridanie do tabulky MAC adries
+            try
+            {
+                ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//id unikatnej MAC adresy
+                SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC ADRESA
+                SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//cas prijatia posledneho ramca
+                mac_table.Items.Add(SrcMac);//pridanie do tabulky MAC adries
+
+                mac_buffer.Add(packet.Ethernet.Source);//pridanie do bufferu mac adries
+                mac_cnt++;//inkrementacia pocitadla uniq mac adries
+                //textPacket.AppendText("/nDST:" + packet.Ethernet.IpV4.Destination.ToString());
+                //textPacket.AppendText("/nSRC:" + packet.Ethernet.IpV4.Source.ToString());
+                //communicator.SendPacket(packet);//odoslanie paketu tam, odkial prišiel
+                textPacket.AppendText(Thread.CurrentThread.ApartmentState.ToString()+"\n");
+            }
+            catch (Exception e)
+            {
+            }
             
-            mac_buffer.Add(packet.Ethernet.Source);//pridanie do bufferu mac adries
-            mac_cnt++;//inkrementacia pocitadla uniq mac adries
-            textPacket.AppendText("/nDST:"+packet.Ethernet.IpV4.Destination.ToString());
-            textPacket.AppendText("/nSRC:" + packet.Ethernet.IpV4.Source.ToString());
-            //communicator.SendPacket(packet);//odoslanie paketu tam, odkial prišiel
+
         }
         //manualaneodoslanie vybraneho ramca na vybrane zariadenie --toto netreba brať do uvahy
         
@@ -94,7 +103,14 @@ namespace PSIP
             for (int i = 0; i < thr_list.Count; i++)
             {
                 actual = i;
-                thr_list[i].Start();
+                if (thr_list[i].ThreadState.ToString().Equals("Suspended"))
+                {
+                    thr_list[i].Resume();
+                }
+                else
+                {
+                    thr_list[i].Start();
+                }
             }
         }
 
@@ -103,6 +119,10 @@ namespace PSIP
             mac_table.Items.Clear();
             mac_buffer.Clear();
             mac_cnt = 0;
+        }
+        private void buttonStop_Click(object sender, EventArgs e)
+        {
+            thr_list[0].Suspend();
         }
     }
 }
