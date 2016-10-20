@@ -26,7 +26,7 @@ namespace PSIP
         private List<PacketCommunicator> com_list;//list so vsetkymi komunikatormi
         private int actual;
         //KONSTANTY
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 10;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 5;
         public Form2()
         {
             //INICIALIZACIA
@@ -38,7 +38,7 @@ namespace PSIP
             com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
             //otvori komunikator pre kazde zariadenie a prida ho do com_list + vypis do tabulky
-            for (int i=0; i<allDevices.Count; i++)
+            for (int i = 0; i < allDevices.Count; i++)
             {
                 LivePacketDevice tempDevice = allDevices[i];
                 ListViewItem row = new ListViewItem(tempDevice.Name);
@@ -52,25 +52,29 @@ namespace PSIP
 
         //HLAVNY HANLDER
         //spracovanie ramcov
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         private void PacketHandler(Packet packet)
         {
             ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//id unikatnej MAC adresy
             SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC ADRESA
             SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//cas prijatia posledneho ramca
             mac_table.Items.Add(SrcMac);//pridanie do tabulky MAC adries
-            
+
             mac_buffer.Add(packet.Ethernet.Source);//pridanie do bufferu mac adries
             mac_cnt++;//inkrementacia pocitadla uniq mac adries
-            textPacket.AppendText("/nDST:"+packet.Ethernet.IpV4.Destination.ToString());
-            textPacket.AppendText("/nSRC:" + packet.Ethernet.IpV4.Source.ToString());
+            //textPacket.AppendText("/nDST:" + packet.Ethernet.IpV4.Destination.ToString());
+            //textPacket.AppendText("/nSRC:" + packet.Ethernet.IpV4.Source.ToString());
             //communicator.SendPacket(packet);//odoslanie paketu tam, odkial prišiel
+
+           // textPacket.AppendText(Thread.CurrentThread.ApartmentState.ToString() + "\n");
+            textPacket.AppendText(packet.Ethernet.ToHexadecimalString()+"\n-----------\n");
         }
         //manualaneodoslanie vybraneho ramca na vybrane zariadenie --toto netreba brať do uvahy
-        
+
         //prijatie ramcov
         private void Receiving()
         {
-            com_list[actual].ReceivePackets(AMOUNT,PacketHandler);
+            com_list[actual].ReceivePackets(AMOUNT, PacketHandler);
         }
         //akcia pri zmene oznaceneho ramca
         private void pktView_SelectedIndexChanged(object sender, EventArgs e)
@@ -80,8 +84,7 @@ namespace PSIP
                 int index = Int32.Parse(mac_table.SelectedItems[0].Text);
                 MacAddress tmpMAC = mac_buffer.ElementAt(index);
                 textPacket.ResetText();
-                textPacket.AppendText(tmpMAC.ToString());
-                
+
             }
             catch (Exception E)
             {
@@ -94,7 +97,14 @@ namespace PSIP
             for (int i = 0; i < thr_list.Count; i++)
             {
                 actual = i;
-                thr_list[i].Start();
+                if (thr_list[i].ThreadState.ToString().Equals("Suspended"))
+                {
+                    thr_list[i].Resume();
+                }
+                else
+                {
+                    thr_list[i].Start();
+                }
             }
         }
 
@@ -103,6 +113,10 @@ namespace PSIP
             mac_table.Items.Clear();
             mac_buffer.Clear();
             mac_cnt = 0;
+        }
+        private void buttonStop_Click(object sender, EventArgs e)
+        {
+            thr_list[0].Suspend();
         }
     }
 }
