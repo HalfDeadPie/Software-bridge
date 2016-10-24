@@ -18,18 +18,18 @@ namespace PSIP
 {
     public partial class Form2 : Form
     {
-        private Packet packet;//paket
-        private int mac_cnt;//pocitadlo unikatnych mac adries
-        private List<MacAddress> mac_buffer;//buffer s mac adresami
-        private IList<LivePacketDevice> allDevices;////list so vsetkymi zariadeniami
-        private List<Thread> thr_list;//list so vsetkymi threadmi
-        private List<PacketCommunicator> com_list;//list so vsetkymi komunikatormi
+        private Packet packet;//packet
+        private int mac_cnt;//MAC counter
+        private List<MacAddress> mac_buffer;//MAC buffer
+        private IList<LivePacketDevice> allDevices;////all devices list
+        private List<Thread> thr_list;//all threads list
+        private List<PacketCommunicator> com_list;//all communicators list
         private int actual;
-        //KONSTANTY
+        //CONSTANTS
         private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 5;
         public Form2()
         {
-            //INICIALIZACIA
+            //INIT
             InitializeComponent();
             Show();
             mac_cnt = 0;
@@ -37,61 +37,53 @@ namespace PSIP
             allDevices = LivePacketDevice.AllLocalMachine;
             com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
-            //otvori komunikator pre kazde zariadenie a prida ho do com_list + vypis do tabulky
+            //open communicators and set threads
             for (int i = 0; i < allDevices.Count; i++)
             {
                 LivePacketDevice tempDevice = allDevices[i];
                 ListViewItem row = new ListViewItem(tempDevice.Name);
-                listDevices.Items.Add(row);//tu asi vytvor temp communicator
+                listDevices.Items.Add(row);
                 com_list.Add(tempDevice.Open
                 (SNAPSHOT, PacketDeviceOpenAttributes.Promiscuous | PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT));
                 thr_list.Add(new Thread(Receiving));
             }
         }
 
+        //add MAC address with callback
+        delegate void callbackMAC(Packet packet);
+        private void addMAC(Packet packet)
+        {
+            if (mac_table.InvokeRequired)
+            {
+                callbackMAC d = new callbackMAC(addMAC);
+                Invoke(d, new object[] { packet });
+            }
+            else
+            {
+                ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//MAC id
+                SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC address
+                SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//timestamps
+                mac_table.Items.Add(SrcMac);//add SRC to MAC Table
+                mac_buffer.Add(packet.Ethernet.Source);//add to MAC buffer
+                mac_cnt++;
+            }
+        }
 
-        //HLAVNY HANLDER
-        //spracovanie ramcov
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        //[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         private void PacketHandler(Packet packet)
         {
-            ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//id unikatnej MAC adresy
-            SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC ADRESA
-            SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//cas prijatia posledneho ramca
-            mac_table.Items.Add(SrcMac);//pridanie do tabulky MAC adries
-
-            mac_buffer.Add(packet.Ethernet.Source);//pridanie do bufferu mac adries
-            mac_cnt++;//inkrementacia pocitadla uniq mac adries
-            //textPacket.AppendText("/nDST:" + packet.Ethernet.IpV4.Destination.ToString());
-            //textPacket.AppendText("/nSRC:" + packet.Ethernet.IpV4.Source.ToString());
-            //communicator.SendPacket(packet);//odoslanie paketu tam, odkial prišiel
-
-           // textPacket.AppendText(Thread.CurrentThread.ApartmentState.ToString() + "\n");
-            textPacket.AppendText(packet.Ethernet.ToHexadecimalString()+"\n-----------\n");
+            addMAC(packet);
         }
-        //manualaneodoslanie vybraneho ramca na vybrane zariadenie --toto netreba brať do uvahy
 
-        //prijatie ramcov
+        //FRAME RECEIVING
         private void Receiving()
         {
             com_list[actual].ReceivePackets(AMOUNT, PacketHandler);
         }
-        //akcia pri zmene oznaceneho ramca
-        private void pktView_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                int index = Int32.Parse(mac_table.SelectedItems[0].Text);
-                MacAddress tmpMAC = mac_buffer.ElementAt(index);
-                textPacket.ResetText();
 
-            }
-            catch (Exception E)
-            {
-            }
-        }
+        
 
-        //akcie tlacidiel - tu skusim spustit vsetky thready nacitame v liste
+        //BUTTON START CLICK
         private void button1_Click(object sender, EventArgs e)
         {
             for (int i = 0; i < thr_list.Count; i++)
@@ -107,16 +99,20 @@ namespace PSIP
                 }
             }
         }
-
+        //BUTTON CLEAR CLICK
         private void buttonClear_Click(object sender, EventArgs e)
         {
             mac_table.Items.Clear();
             mac_buffer.Clear();
             mac_cnt = 0;
         }
+        //BUTTON STOP CLICK
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            thr_list[0].Suspend();
+        }
+        //TABLE EVENT
+        private void pktView_SelectedIndexChanged(object sender, EventArgs e)
+        {
         }
     }
 }
