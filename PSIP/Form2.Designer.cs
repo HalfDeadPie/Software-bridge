@@ -50,11 +50,11 @@
             this.mac_table.FullRowSelect = true;
             this.mac_table.GridLines = true;
             this.mac_table.HideSelection = false;
-            this.mac_table.Location = new System.Drawing.Point(9, 37);
-            this.mac_table.Margin = new System.Windows.Forms.Padding(2);
+            this.mac_table.Location = new System.Drawing.Point(12, 46);
+            this.mac_table.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.mac_table.MultiSelect = false;
             this.mac_table.Name = "mac_table";
-            this.mac_table.Size = new System.Drawing.Size(224, 263);
+            this.mac_table.Size = new System.Drawing.Size(297, 323);
             this.mac_table.TabIndex = 0;
             this.mac_table.UseCompatibleStateImageBehavior = false;
             this.mac_table.View = System.Windows.Forms.View.Details;
@@ -77,10 +77,10 @@
             // 
             // buttonStart
             // 
-            this.buttonStart.Location = new System.Drawing.Point(176, 304);
-            this.buttonStart.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonStart.Location = new System.Drawing.Point(235, 374);
+            this.buttonStart.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonStart.Name = "buttonStart";
-            this.buttonStart.Size = new System.Drawing.Size(56, 19);
+            this.buttonStart.Size = new System.Drawing.Size(75, 23);
             this.buttonStart.TabIndex = 1;
             this.buttonStart.Text = "Start";
             this.buttonStart.UseVisualStyleBackColor = true;
@@ -92,10 +92,10 @@
             this.columnHeader3});
             this.listDevices.FullRowSelect = true;
             this.listDevices.HideSelection = false;
-            this.listDevices.Location = new System.Drawing.Point(403, 37);
-            this.listDevices.Margin = new System.Windows.Forms.Padding(2);
+            this.listDevices.Location = new System.Drawing.Point(537, 46);
+            this.listDevices.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.listDevices.Name = "listDevices";
-            this.listDevices.Size = new System.Drawing.Size(237, 110);
+            this.listDevices.Size = new System.Drawing.Size(315, 134);
             this.listDevices.TabIndex = 3;
             this.listDevices.UseCompatibleStateImageBehavior = false;
             this.listDevices.View = System.Windows.Forms.View.Details;
@@ -109,10 +109,10 @@
             // 
             this.buttonReset.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.buttonReset.ForeColor = System.Drawing.Color.Snow;
-            this.buttonReset.Location = new System.Drawing.Point(594, 1);
-            this.buttonReset.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonReset.Location = new System.Drawing.Point(792, 1);
+            this.buttonReset.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonReset.Name = "buttonReset";
-            this.buttonReset.Size = new System.Drawing.Size(45, 31);
+            this.buttonReset.Size = new System.Drawing.Size(60, 38);
             this.buttonReset.TabIndex = 6;
             this.buttonReset.Text = "Reset";
             this.buttonReset.UseVisualStyleBackColor = false;
@@ -121,10 +121,10 @@
             // 
             this.buttonClear.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.buttonClear.ForeColor = System.Drawing.SystemColors.Window;
-            this.buttonClear.Location = new System.Drawing.Point(352, 1);
-            this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
+            this.buttonClear.Location = new System.Drawing.Point(469, 1);
+            this.buttonClear.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonClear.Name = "buttonClear";
-            this.buttonClear.Size = new System.Drawing.Size(46, 31);
+            this.buttonClear.Size = new System.Drawing.Size(61, 38);
             this.buttonClear.TabIndex = 7;
             this.buttonClear.Text = "Clear";
             this.buttonClear.UseVisualStyleBackColor = false;
@@ -132,18 +132,20 @@
             // 
             // textPacket
             // 
-            this.textPacket.Location = new System.Drawing.Point(403, 150);
-            this.textPacket.Margin = new System.Windows.Forms.Padding(2);
+            this.textPacket.Location = new System.Drawing.Point(537, 185);
+            this.textPacket.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textPacket.Multiline = true;
             this.textPacket.Name = "textPacket";
-            this.textPacket.Size = new System.Drawing.Size(237, 149);
+            this.textPacket.Size = new System.Drawing.Size(315, 182);
             this.textPacket.TabIndex = 11;
+            this.textPacket.TextChanged += new System.EventHandler(this.textPacket_TextChanged);
             // 
             // buttonStop
             // 
-            this.buttonStop.Location = new System.Drawing.Point(96, 302);
+            this.buttonStop.Location = new System.Drawing.Point(128, 372);
+            this.buttonStop.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonStop.Name = "buttonStop";
-            this.buttonStop.Size = new System.Drawing.Size(75, 23);
+            this.buttonStop.Size = new System.Drawing.Size(100, 28);
             this.buttonStop.TabIndex = 12;
             this.buttonStop.Text = "Sthap";
             this.buttonStop.UseVisualStyleBackColor = true;
@@ -151,10 +153,10 @@
             // 
             // Form2
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.ClientSize = new System.Drawing.Size(640, 370);
+            this.ClientSize = new System.Drawing.Size(853, 455);
             this.Controls.Add(this.buttonStop);
             this.Controls.Add(this.textPacket);
             this.Controls.Add(this.buttonClear);
@@ -162,7 +164,7 @@
             this.Controls.Add(this.listDevices);
             this.Controls.Add(this.buttonStart);
             this.Controls.Add(this.mac_table);
-            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "Form2";
             this.Text = "Form2";
             this.ResumeLayout(false);

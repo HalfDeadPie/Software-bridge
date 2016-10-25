@@ -4,6 +4,7 @@ using PcapDotNet.Packets.Arp;
 using PcapDotNet.Packets.Ethernet;
 using PcapDotNet.Packets.IpV4;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,6 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Forms;
 
 namespace PSIP
@@ -25,8 +27,15 @@ namespace PSIP
         private List<Thread> thr_list;//all threads list
         private List<PacketCommunicator> com_list;//all communicators list
         private int actual;
+        private Hashtable htLog;
+        public System.Timers.Timer timer; 
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 5;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1;
+        /*private static void OnTimedEvent(Object source, ElapsedEventArgs e)
+        {
+            Console.WriteLine("The Elapsed event was raised at {0:HH:mm:ss.fff}",
+                              e.SignalTime);
+        }*/
         public Form2()
         {
             //INIT
@@ -37,6 +46,11 @@ namespace PSIP
             allDevices = LivePacketDevice.AllLocalMachine;
             com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
+            htLog = new Hashtable();
+            timer= new System.Timers.Timer(10000);
+            //timer.Start();
+            //timer.Elapsed += OnTimedEvent;
+            
             //open communicators and set threads
             for (int i = 0; i < allDevices.Count; i++)
             {
@@ -60,12 +74,19 @@ namespace PSIP
             }
             else
             {
-                ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//MAC id
-                SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());//MAC address
-                SrcMac.SubItems.Add(packet.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff"));//timestamps
-                mac_table.Items.Add(SrcMac);//add SRC to MAC Table
-                mac_buffer.Add(packet.Ethernet.Source);//add to MAC buffer
-                mac_cnt++;
+                int key = packet.Ethernet.Source.GetHashCode();
+                if (htLog[key]==null)//ak tuto MAC nemam este v tabulke
+                {
+                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1);//create the new log
+                    htLog.Add(key, log);//add log to hashtable
+                    ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//adding to GUI table
+                    SrcMac.SubItems.Add(log.MAC1.ToString());
+                    SrcMac.SubItems.Add(log.Timestamp.ToLongTimeString());
+                    mac_table.Items.Add(SrcMac);
+                    textPacket.AppendText(allDevices[actual].Description.ToString()+"\n");
+                    mac_cnt++;
+                    
+                }
             }
         }
 
@@ -99,6 +120,7 @@ namespace PSIP
                 }
             }
         }
+
         //BUTTON CLEAR CLICK
         private void buttonClear_Click(object sender, EventArgs e)
         {
@@ -113,6 +135,11 @@ namespace PSIP
         //TABLE EVENT
         private void pktView_SelectedIndexChanged(object sender, EventArgs e)
         {
+        }
+
+        private void textPacket_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
