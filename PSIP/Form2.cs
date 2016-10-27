@@ -21,7 +21,6 @@ namespace PSIP
     public partial class Form2 : Form
     {
         private Packet packet;//packet
-        private int mac_cnt;//MAC counter
         private List<MacAddress> mac_buffer;//MAC buffer
         private IList<LivePacketDevice> allDevices;////all devices list
         private List<Thread> thr_list;//all threads list
@@ -30,26 +29,18 @@ namespace PSIP
         private Hashtable htLog;
         public System.Timers.Timer timer; 
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1;
-        /*private static void OnTimedEvent(Object source, ElapsedEventArgs e)
-        {
-            Console.WriteLine("The Elapsed event was raised at {0:HH:mm:ss.fff}",
-                              e.SignalTime);
-        }*/
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1, TIME = 10000;
+
         public Form2()
         {
             //INIT
             InitializeComponent();
             Show();
-            mac_cnt = 0;
             mac_buffer = new List<MacAddress>();
             allDevices = LivePacketDevice.AllLocalMachine;
             com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
             htLog = new Hashtable();
-            timer= new System.Timers.Timer(10000);
-            //timer.Start();
-            //timer.Elapsed += OnTimedEvent;
             
             //open communicators and set threads
             for (int i = 0; i < allDevices.Count; i++)
@@ -75,17 +66,33 @@ namespace PSIP
             else
             {
                 int key = packet.Ethernet.Source.GetHashCode();
-                if (htLog[key]==null)//ak tuto MAC nemam este v tabulke
+                if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
-                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1);//create the new log
-                    htLog.Add(key, log);//add log to hashtable
-                    ListViewItem SrcMac = new ListViewItem(mac_cnt.ToString());//adding to GUI table
-                    SrcMac.SubItems.Add(log.MAC1.ToString());
-                    SrcMac.SubItems.Add(log.Timestamp.ToLongTimeString());
+
+                    ListViewItem SrcMac = new ListViewItem(actual.ToString());//adding to GUI table
+
+                    //SrcMac.SubItems.
+                    SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
+                    SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
+                    //SrcMac.SubItems.Add();
                     mac_table.Items.Add(SrcMac);
-                    textPacket.AppendText(allDevices[actual].Description.ToString()+"\n");
-                    mac_cnt++;
-                    
+
+                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
+                    htLog.Add(key, log);//add log to hashtable
+                }
+                else
+                {
+                    ListViewItem SrcMac = new ListViewItem(actual.ToString());//adding to GUI table
+
+                    SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
+                    SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
+
+                    Log temp = (Log)htLog[key];
+                    temp.Item.Remove();//here I remove address from ListView of MAC
+                    htLog.Remove(key);
+                    //create the new log
+                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
+                    mac_table.Items.Add(SrcMac);
                 }
             }
         }
@@ -101,8 +108,6 @@ namespace PSIP
         {
             com_list[actual].ReceivePackets(AMOUNT, PacketHandler);
         }
-
-        
 
         //BUTTON START CLICK
         private void button1_Click(object sender, EventArgs e)
@@ -126,11 +131,15 @@ namespace PSIP
         {
             mac_table.Items.Clear();
             mac_buffer.Clear();
-            mac_cnt = 0;
+            htLog.Clear();
         }
         //BUTTON STOP CLICK
         private void buttonStop_Click(object sender, EventArgs e)
         {
+            for (int i = 0; i < com_list.Count; i++)
+            {
+                com_list[i].Break();
+            }
         }
         //TABLE EVENT
         private void pktView_SelectedIndexChanged(object sender, EventArgs e)

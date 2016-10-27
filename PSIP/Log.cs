@@ -1,44 +1,79 @@
 ﻿using PcapDotNet.Packets.Ethernet;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Windows.Forms;
 
 namespace PSIP
 {
     class Log
     {
-        public Log(MacAddress MAC, DateTime timestamp, int port)
+        //MAIN CONSTRUCTOR
+        public Log(MacAddress MAC, DateTime timestamp, int port, int time, Hashtable ht, ListViewItem item)
         {
             this.MAC = MAC;
             this.timestamp = timestamp;
             this.port = port;
+            this.parent = ht;
+            this.item = item;
+            this.timer = new System.Timers.Timer(time);
+            this.timer.Start();
+            timer.Elapsed += OnTimedEvent;
         }
-        public Log()
+        //PARENT LIST VIEW
+        
+
+        //ITEM IN LIST VIEW
+        public ListViewItem item;
+        public ListViewItem Item
         {
+            get { return item; }
+            set { item = value; }
         }
 
-        private MacAddress MAC;//mac address
+        //PARENT HASHTABLE
+        private Hashtable parent;
+        public Hashtable Parent
+        {
+            get { return parent; }
+            set { parent = value; }
+        }
+        //TIMER ELAPSED METHOD
+        public System.Timers.Timer timer;
+        private void OnTimedEvent(Object source, ElapsedEventArgs e)
+        {
+            this.item.Remove();
+            this.parent.Remove(this);
+        }
 
+        //MACADDRESS
+        private MacAddress MAC;//mac address
         public MacAddress MAC1
         {
             get { return MAC; }
             set { MAC = value; }
         }
+        //TIMESTAMP
         private DateTime timestamp;//time of last received
-
         public DateTime Timestamp
         {
             get { return timestamp; }
             set { timestamp = value; }
         }
-        private int port;//pertaining port
-
+        //PERTAINING PORT
+        private int port;
         public int Port
         {
             get { return port; }
             set { port = value; }
-        }            
+        }
+        //CONSTRUCTOR
+        public Log()
+        {
+        } 
     }
 }
