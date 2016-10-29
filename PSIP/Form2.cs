@@ -136,10 +136,6 @@ namespace PSIP
         //BUTTON STOP CLICK
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < com_list.Count; i++)
-            {
-                com_list[i].Break();
-            }
         }
         //TABLE EVENT
         private void pktView_SelectedIndexChanged(object sender, EventArgs e)
