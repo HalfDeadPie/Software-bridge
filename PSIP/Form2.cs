@@ -27,12 +27,14 @@ namespace PSIP
         private List<PacketCommunicator> com_list;//all communicators list
         private int actual;
         private Hashtable htLog;
-        public System.Timers.Timer timer; 
+        private Boolean enabled;
         //CONSTANTS
         private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1, TIME = 10000;
 
         public Form2()
         {
+            actual = 0;
+            
             //INIT
             InitializeComponent();
             Show();
@@ -41,7 +43,9 @@ namespace PSIP
             com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
             htLog = new Hashtable();
-            
+
+            enabled = false;
+
             //open communicators and set threads
             for (int i = 0; i < allDevices.Count; i++)
             {
@@ -49,8 +53,9 @@ namespace PSIP
                 ListViewItem row = new ListViewItem(tempDevice.Name);
                 listDevices.Items.Add(row);
                 com_list.Add(tempDevice.Open
-                (SNAPSHOT, PacketDeviceOpenAttributes.Promiscuous | PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT));
+                (SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT));
                 thr_list.Add(new Thread(Receiving));
+                thr_list[i].Start();
             }
         }
 
@@ -66,24 +71,22 @@ namespace PSIP
             else
             {
                 int key = packet.Ethernet.Source.GetHashCode();
-                if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
+                if(htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
 
-                    ListViewItem SrcMac = new ListViewItem(actual.ToString());//adding to GUI table
-
-                    //SrcMac.SubItems.
+                    ListViewItem SrcMac = new ListViewItem(allDevices[actual].Name.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
-                    //SrcMac.SubItems.Add();
                     mac_table.Items.Add(SrcMac);
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
+                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString()+"\n\n---------------");
+                    
                 }
                 else
                 {
-                    ListViewItem SrcMac = new ListViewItem(actual.ToString());//adding to GUI table
-
+                    ListViewItem SrcMac = new ListViewItem(allDevices[actual].Name.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
 
@@ -93,6 +96,7 @@ namespace PSIP
                     //create the new log
                     htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
+                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
                 }
             }
         }
@@ -100,7 +104,12 @@ namespace PSIP
         //[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         private void PacketHandler(Packet packet)
         {
-            addMAC(packet);
+            if (enabled)
+            {
+                addMAC(packet);
+                com_list[actual].SendPacket(packet);
+            }
+
         }
 
         //FRAME RECEIVING
@@ -112,18 +121,7 @@ namespace PSIP
         //BUTTON START CLICK
         private void button1_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < thr_list.Count; i++)
-            {
-                actual = i;
-                if (thr_list[i].ThreadState.ToString().Equals("Suspended"))
-                {
-                    thr_list[i].Resume();
-                }
-                else
-                {
-                    thr_list[i].Start();
-                }
-            }
+            enabled = true;
         }
 
         //BUTTON CLEAR CLICK
@@ -136,6 +134,8 @@ namespace PSIP
         //BUTTON STOP CLICK
         private void buttonStop_Click(object sender, EventArgs e)
         {
+            enabled = false;
+
         }
         //TABLE EVENT
         private void pktView_SelectedIndexChanged(object sender, EventArgs e)
@@ -143,6 +143,21 @@ namespace PSIP
         }
 
         private void textPacket_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void listDevices_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void buttonReset_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
         {
 
         }
