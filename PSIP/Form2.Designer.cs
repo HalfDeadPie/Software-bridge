@@ -51,14 +51,13 @@
             this.mac_table.GridLines = true;
             this.mac_table.HideSelection = false;
             this.mac_table.Location = new System.Drawing.Point(9, 37);
-            this.mac_table.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.mac_table.Margin = new System.Windows.Forms.Padding(2);
             this.mac_table.MultiSelect = false;
             this.mac_table.Name = "mac_table";
             this.mac_table.Size = new System.Drawing.Size(516, 391);
             this.mac_table.TabIndex = 0;
             this.mac_table.UseCompatibleStateImageBehavior = false;
             this.mac_table.View = System.Windows.Forms.View.Details;
-            this.mac_table.SelectedIndexChanged += new System.EventHandler(this.pktView_SelectedIndexChanged);
             // 
             // columnHeader1
             // 
@@ -78,7 +77,7 @@
             // buttonStart
             // 
             this.buttonStart.Location = new System.Drawing.Point(469, 432);
-            this.buttonStart.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonStart.Margin = new System.Windows.Forms.Padding(2);
             this.buttonStart.Name = "buttonStart";
             this.buttonStart.Size = new System.Drawing.Size(56, 19);
             this.buttonStart.TabIndex = 1;
@@ -93,13 +92,12 @@
             this.listDevices.FullRowSelect = true;
             this.listDevices.HideSelection = false;
             this.listDevices.Location = new System.Drawing.Point(539, 38);
-            this.listDevices.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.listDevices.Margin = new System.Windows.Forms.Padding(2);
             this.listDevices.Name = "listDevices";
             this.listDevices.Size = new System.Drawing.Size(237, 110);
             this.listDevices.TabIndex = 3;
             this.listDevices.UseCompatibleStateImageBehavior = false;
             this.listDevices.View = System.Windows.Forms.View.Details;
-            this.listDevices.SelectedIndexChanged += new System.EventHandler(this.listDevices_SelectedIndexChanged);
             // 
             // columnHeader3
             // 
@@ -111,20 +109,19 @@
             this.buttonReset.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.buttonReset.ForeColor = System.Drawing.Color.Snow;
             this.buttonReset.Location = new System.Drawing.Point(730, 2);
-            this.buttonReset.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonReset.Margin = new System.Windows.Forms.Padding(2);
             this.buttonReset.Name = "buttonReset";
             this.buttonReset.Size = new System.Drawing.Size(45, 31);
             this.buttonReset.TabIndex = 6;
             this.buttonReset.Text = "Reset";
             this.buttonReset.UseVisualStyleBackColor = false;
-            this.buttonReset.Click += new System.EventHandler(this.buttonReset_Click);
             // 
             // buttonClear
             // 
             this.buttonClear.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.buttonClear.ForeColor = System.Drawing.SystemColors.Window;
             this.buttonClear.Location = new System.Drawing.Point(479, 2);
-            this.buttonClear.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.buttonClear.Margin = new System.Windows.Forms.Padding(2);
             this.buttonClear.Name = "buttonClear";
             this.buttonClear.Size = new System.Drawing.Size(46, 31);
             this.buttonClear.TabIndex = 7;
@@ -135,12 +132,11 @@
             // textPacket
             // 
             this.textPacket.Location = new System.Drawing.Point(539, 151);
-            this.textPacket.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textPacket.Margin = new System.Windows.Forms.Padding(2);
             this.textPacket.Multiline = true;
             this.textPacket.Name = "textPacket";
             this.textPacket.Size = new System.Drawing.Size(894, 407);
             this.textPacket.TabIndex = 11;
-            this.textPacket.TextChanged += new System.EventHandler(this.textPacket_TextChanged);
             // 
             // buttonStop
             // 
@@ -165,10 +161,10 @@
             this.Controls.Add(this.listDevices);
             this.Controls.Add(this.buttonStart);
             this.Controls.Add(this.mac_table);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form2";
             this.Text = "Form2";
-            this.Load += new System.EventHandler(this.Form2_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form2_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
 

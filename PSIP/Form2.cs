@@ -21,45 +21,40 @@ namespace PSIP
     public partial class Form2 : Form
     {
         private Packet packet;//packet
-        private List<MacAddress> mac_buffer;//MAC buffer
         private IList<LivePacketDevice> allDevices;////all devices list
         private List<Thread> thr_list;//all threads list
-        private List<PacketCommunicator> com_list;//all communicators list
-        private int actual;
         private Hashtable htLog;
         private Boolean enabled;
+
+        private int actual;
+
+        private PacketCommunicator dev0;
+        private PacketCommunicator dev1;
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1, TIME = 10000;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 0, TIME = 10000;
 
         public Form2()
         {
-            actual = 0;
-            
             //INIT
             InitializeComponent();
             Show();
-            mac_buffer = new List<MacAddress>();
             allDevices = LivePacketDevice.AllLocalMachine;
-            com_list = new List<PacketCommunicator>();
             thr_list = new List<Thread>();
             htLog = new Hashtable();
-
             enabled = false;
 
-            //open communicators and set threads
-            for (int i = 0; i < allDevices.Count; i++)
-            {
-                LivePacketDevice tempDevice = allDevices[i];
-                ListViewItem row = new ListViewItem(tempDevice.Name);
-                listDevices.Items.Add(row);
-                com_list.Add(tempDevice.Open
-                (SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT));
-                thr_list.Add(new Thread(Receiving));
-                thr_list[i].Start();
-            }
+            //open communcators
+            dev0 = allDevices[0].Open(SNAPSHOT,PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT);
+            thr_list.Add(new Thread(Receiving0));
+            thr_list[0].Start();
+            /*
+            dev1 = allDevices[1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT);
+            thr_list.Add(new Thread(Receiving1));
+            thr_list[1].Start();
+            */
         }
 
-        //add MAC address with callback
+        //ADD MAC ADDRESS WITH CALLBACK (uniq)
         delegate void callbackMAC(Packet packet);
         private void addMAC(Packet packet)
         {
@@ -101,23 +96,40 @@ namespace PSIP
             }
         }
 
-        //[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
-        private void PacketHandler(Packet packet)
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        private void PacketHandler0(Packet packet)
         {
             if (enabled)
             {
                 addMAC(packet);
-                com_list[actual].SendPacket(packet);
+                actual = 0;
             }
-
+            //dev0.SendPacket(packet);
         }
-
-        //FRAME RECEIVING
-        private void Receiving()
+        
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        private void PacketHandler1(Packet packet)
         {
-            com_list[actual].ReceivePackets(AMOUNT, PacketHandler);
+            if (enabled)
+            {
+                addMAC(packet);
+                actual = 1;
+            }
+            //dev1.SendPacket(packet);
+        }
+        //FRAME RECEIVING
+        private void Receiving0()
+        {
+            dev0.ReceivePackets(AMOUNT, PacketHandler0);
         }
 
+        private void Receiving1()//i am not really using this function in this version
+        {
+            dev1.ReceivePackets(AMOUNT, PacketHandler1);
+        }
+
+
+        //-----------------------------------------------------------------------------------------
         //BUTTON START CLICK
         private void button1_Click(object sender, EventArgs e)
         {
@@ -128,38 +140,16 @@ namespace PSIP
         private void buttonClear_Click(object sender, EventArgs e)
         {
             mac_table.Items.Clear();
-            mac_buffer.Clear();
             htLog.Clear();
         }
         //BUTTON STOP CLICK
         private void buttonStop_Click(object sender, EventArgs e)
         {
             enabled = false;
-
         }
-        //TABLE EVENT
-        private void pktView_SelectedIndexChanged(object sender, EventArgs e)
+        private void Form2_FormClosing(object sender, FormClosingEventArgs e)
         {
-        }
-
-        private void textPacket_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void listDevices_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void buttonReset_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Form2_Load(object sender, EventArgs e)
-        {
-
+            Environment.Exit(0);
         }
     }
 }
