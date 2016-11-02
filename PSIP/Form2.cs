@@ -26,84 +26,72 @@ namespace PSIP
         private Hashtable htLog;
         private Boolean enabled;
 
+        private List<Packet> listDev0, listDev1;
+        private int actual;
+
         private PacketCommunicator dev0;
         private PacketCommunicator dev1;
-
-        private Hashtable htDev0;
-        private Hashtable htDev1;
-
-        private List<Packet> listDev0;
-        private List<Packet> listDev1;
         //CONSTANTS
         private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 0, TIME = 10000;
-        //INIT
-        //-----------------------------------------------------------------------------------------
+
         public Form2()
         {
             //INIT
             InitializeComponent();
             Show();
             allDevices = LivePacketDevice.AllLocalMachine;
-            //if there are no devices found
-            if (allDevices.Count == 0)
-            {
-                MessageBox.Show("No devices found!");
-                Environment.Exit(0);
-            }
-            //print all devices
-            foreach (LivePacketDevice row in allDevices)
-            {
-                listDevices.Items.Add(new ListViewItem(row.Description));
-            }
-
             thr_list = new List<Thread>();
-            
             htLog = new Hashtable();
-            htDev0 = new Hashtable();
-            htDev1 = new Hashtable();
-
-            listDev0 = new List<Packet>();
-            listDev1 = new List<Packet>();
             enabled = false;
 
+            foreach (LivePacketDevice row in allDevices)
+            {
+                listDevices.BeginInvoke(new Action(() => listDevices.Items.Add(new ListViewItem(row.Description))));
+            }
+            
+
             //open communcators
-            dev0 = allDevices[0].Open(SNAPSHOT, (PacketDeviceOpenAttributes.NoCaptureLocal|PacketDeviceOpenAttributes.Promiscuous), TIMEOUT);
+            dev0 = allDevices[0].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving0));
             thr_list[0].Start();
-
-            dev1 = allDevices[1].Open(SNAPSHOT, (PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous), TIMEOUT);
+            
+            dev1 = allDevices[1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving1));
             thr_list[1].Start();
             
+            listDev0 = new List<Packet>();
+            listDev1 = new List<Packet>();
+        
         }
-        //-----------------------------------------------------------------------------------------
+
         //ADD MAC ADDRESS WITH CALLBACK (uniq)
-        delegate void callbackMAC(Packet packet, int dev_id);
-        private void addMAC(Packet packet, int dev_id)
+        delegate void callbackMACdev0(Packet packet);
+        private void addMACdev0(Packet packet)
         {
             if (mac_table.InvokeRequired)
             {
-                callbackMAC d = new callbackMAC(addMAC);
-                Invoke(d, new object[] { packet, dev_id });
+                callbackMACdev0 d = new callbackMACdev0(addMACdev0);
+                Invoke(d, new object[] { packet });
             }
             else
             {
                 int key = packet.Ethernet.Source.GetHashCode();
-                if(htLog[key] == null)//ak tuto MAC nemam este v tabulke
+                if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
 
-                    ListViewItem SrcMac = new ListViewItem(dev_id.ToString());//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem("0");//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
                     mac_table.Items.Add(SrcMac);
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
-                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString()+"\n\n---------------");
+                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+
                 }
                 else
                 {
-                    ListViewItem SrcMac = new ListViewItem(dev_id.ToString());//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem("0");//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
 
@@ -117,65 +105,98 @@ namespace PSIP
                 }
             }
         }
-
-        //ADD PACKET TO LIST AND CHCEK DUPLICATION IN HASHTABLE
-        public int addPacket(List<Packet> list, Hashtable ht, Packet packet)
+        delegate void callbackMACdev1(Packet packet);
+        private void addMACdev1(Packet packet)
         {
-            int key = packet.GetHashCode();
-            if (ht[key] == null)
+            if (mac_table.InvokeRequired)
             {
-                ht.Add(key, packet);
-                list.Add(packet);
-                return 1;
+                callbackMACdev1 d = new callbackMACdev1(addMACdev1);
+                Invoke(d, new object[] { packet });
             }
             else
             {
-                return 0;
-            }
-        }
-        //-----------------------------------------------------------------------------------------
-        //PACKET HANDLERS
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
-        private void PacketHandler0(Packet packet)
-        {
-            addMAC(packet,0);
-            if (addPacket(listDev0, htDev0, packet) == 1)
-            {
-                Forward(allDevices[1], packet);
-            }
-        }
-        
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
-        private void PacketHandler1(Packet packet)
-        {
-            addMAC(packet,1);
-            if (addPacket(listDev1, htDev1, packet) == 0)
-            {
-                Forward(allDevices[0], packet);
+                int key = packet.Ethernet.Source.GetHashCode();
+                if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
+                {
+
+                    ListViewItem SrcMac = new ListViewItem("1");//adding to GUI table
+                    SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
+                    SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
+                    mac_table.Items.Add(SrcMac);
+
+                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
+                    htLog.Add(key, log);//add log to hashtable
+                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+
+                }
+                else
+                {
+                    ListViewItem SrcMac = new ListViewItem("1");//adding to GUI table
+                    SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
+                    SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
+
+                    Log temp = (Log)htLog[key];
+                    temp.Item.Remove();//here I remove address from ListView of MAC
+                    htLog.Remove(key);
+                    //create the new log
+                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
+                    mac_table.Items.Add(SrcMac);
+                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+                }
+
+
             }
         }
 
-        //FORWARDING
-        public void Forward(PacketDevice dev, Packet packet)
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        private void PacketHandler0(Packet packet)
         {
-            using (PacketCommunicator communicator = dev.Open(100, PacketDeviceOpenAttributes.Promiscuous, 10))
+            if (enabled)
             {
-                communicator.SendPacket(packet);
+                addMACdev0(packet);
+                actual = 0;
+                foreach(Packet row in listDev0)
+                {
+                    if (row.Equals(packet))
+                    {
+                        return;
+                    }
+                }
+                listDev0.Add(packet);
+                dev1.SendPacket(packet);
             }
         }
-        //-----------------------------------------------------------------------------------------
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        private void PacketHandler1(Packet packet)
+        {
+            if (enabled)
+            {
+                addMACdev1(packet);
+                actual = 0;
+                foreach (Packet row in listDev0)
+                {
+                    if (row.Equals(packet))
+                    {
+                        return;
+                    }
+                }
+                listDev1.Add(packet);
+                dev0.SendPacket(packet);
+            }
+        }
         //FRAME RECEIVING
         private void Receiving0()
         {
-            if(enabled)
-                dev0.ReceivePackets(AMOUNT, PacketHandler0);
+            dev0.ReceivePackets(AMOUNT, PacketHandler0);
         }
 
         private void Receiving1()//i am not really using this function in this version
         {
-            if(enabled)
-                dev1.ReceivePackets(AMOUNT, PacketHandler1);
+            dev1.ReceivePackets(AMOUNT, PacketHandler1);
         }
+
+
         //-----------------------------------------------------------------------------------------
         //BUTTON START CLICK
         private void button1_Click(object sender, EventArgs e)
