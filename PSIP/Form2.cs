@@ -10,7 +10,9 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -25,14 +27,14 @@ namespace PSIP
         private List<Thread> thr_list;//all threads list
         private Hashtable htLog;
         private Boolean enabled;
+        private MacAddress myMAC;
+        private int downcntDev0;
 
-        private List<Packet> listDev0, listDev1;
-        private int actual;
-
+        //private List<Packet> listDev0, listDev1;
         private PacketCommunicator dev0;
         private PacketCommunicator dev1;
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 0, TIME = 10000;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 0, TIME = 10000, DEV0 = 0, DEV1 = 1;
 
         public Form2()
         {
@@ -43,24 +45,35 @@ namespace PSIP
             thr_list = new List<Thread>();
             htLog = new Hashtable();
             enabled = false;
+            try
+            {
+                myMAC = new MacAddress(getMyMAC().ToString());
+                this.Text = (myMAC.ToString());
+            }
+            catch
+            {
+                MessageBox.Show("Physical address of current device not found!");
+                this.Text = ("No physical address!");
+            }
+
+            downcntDev0 = 0;
 
             foreach (LivePacketDevice row in allDevices)
             {
                 listDevices.BeginInvoke(new Action(() => listDevices.Items.Add(new ListViewItem(row.Description))));
             }
             
-
             //open communcators
-            dev0 = allDevices[0].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
+            dev0 = allDevices[DEV0].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving0));
             thr_list[0].Start();
-            
-            dev1 = allDevices[1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
+            /*
+            dev1 = allDevices[DEV1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving1));
             thr_list[1].Start();
-            
-            listDev0 = new List<Packet>();
-            listDev1 = new List<Packet>();
+            */
+            //listDev0 = new List<Packet>();
+            //listDev1 = new List<Packet>();
         
         }
 
@@ -68,6 +81,10 @@ namespace PSIP
         delegate void callbackMACdev0(Packet packet);
         private void addMACdev0(Packet packet)
         {
+            if(packet.Ethernet.Source.Equals(myMAC))
+            {
+                return;
+            }
             if (mac_table.InvokeRequired)
             {
                 callbackMACdev0 d = new callbackMACdev0(addMACdev0);
@@ -86,7 +103,7 @@ namespace PSIP
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
-                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
 
                 }
                 else
@@ -101,7 +118,7 @@ namespace PSIP
                     //create the new log
                     htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
-                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
                 }
             }
         }
@@ -126,7 +143,7 @@ namespace PSIP
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
-                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
 
                 }
                 else
@@ -141,7 +158,7 @@ namespace PSIP
                     //create the new log
                     htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
-                    textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
+                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
                 }
 
 
@@ -153,8 +170,10 @@ namespace PSIP
         {
             if (enabled)
             {
+                downcntDev0++;
+                textPacket.BeginInvoke(new Action(() => textPacket.Text = ("Received:" + downcntDev0.ToString())));
                 addMACdev0(packet);
-                actual = 0;
+                /*
                 foreach(Packet row in listDev0)
                 {
                     if (row.Equals(packet))
@@ -163,7 +182,7 @@ namespace PSIP
                     }
                 }
                 listDev0.Add(packet);
-                dev1.SendPacket(packet);
+                dev1.SendPacket(packet);*/
             }
         }
 
@@ -173,8 +192,7 @@ namespace PSIP
             if (enabled)
             {
                 addMACdev1(packet);
-                actual = 0;
-                foreach (Packet row in listDev0)
+                /*foreach (Packet row in listDev0)
                 {
                     if (row.Equals(packet))
                     {
@@ -182,7 +200,7 @@ namespace PSIP
                     }
                 }
                 listDev1.Add(packet);
-                dev0.SendPacket(packet);
+                dev0.SendPacket(packet);*/
             }
         }
         //FRAME RECEIVING
@@ -195,7 +213,20 @@ namespace PSIP
         {
             dev1.ReceivePackets(AMOUNT, PacketHandler1);
         }
-
+        //GET MY MAC ADDRESS
+        public string getMyMAC()
+        {
+            var macAddr =
+            (
+                from nic in NetworkInterface.GetAllNetworkInterfaces()
+                where nic.OperationalStatus == OperationalStatus.Up
+                select nic.GetPhysicalAddress().ToString()
+            ).FirstOrDefault();
+            var regex = "(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})";
+            var replace = "$1:$2:$3:$4:$5:$6";
+            var newformat = Regex.Replace(macAddr, regex, replace);
+            return newformat.ToString();
+        }
 
         //-----------------------------------------------------------------------------------------
         //BUTTON START CLICK

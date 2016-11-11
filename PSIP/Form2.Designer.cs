@@ -37,7 +37,6 @@
             this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.buttonReset = new System.Windows.Forms.Button();
             this.buttonClear = new System.Windows.Forms.Button();
-            this.textPacket = new System.Windows.Forms.TextBox();
             this.buttonStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -54,7 +53,7 @@
             this.mac_table.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.mac_table.MultiSelect = false;
             this.mac_table.Name = "mac_table";
-            this.mac_table.Size = new System.Drawing.Size(687, 480);
+            this.mac_table.Size = new System.Drawing.Size(294, 480);
             this.mac_table.TabIndex = 0;
             this.mac_table.UseCompatibleStateImageBehavior = false;
             this.mac_table.View = System.Windows.Forms.View.Details;
@@ -62,7 +61,7 @@
             // columnHeader1
             // 
             this.columnHeader1.Text = "Port";
-            this.columnHeader1.Width = 250;
+            this.columnHeader1.Width = 30;
             // 
             // columnHeader4
             // 
@@ -76,7 +75,7 @@
             // 
             // buttonStart
             // 
-            this.buttonStart.Location = new System.Drawing.Point(625, 532);
+            this.buttonStart.Location = new System.Drawing.Point(231, 530);
             this.buttonStart.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonStart.Name = "buttonStart";
             this.buttonStart.Size = new System.Drawing.Size(75, 23);
@@ -91,10 +90,10 @@
             this.columnHeader3});
             this.listDevices.FullRowSelect = true;
             this.listDevices.HideSelection = false;
-            this.listDevices.Location = new System.Drawing.Point(719, 47);
+            this.listDevices.Location = new System.Drawing.Point(312, 46);
             this.listDevices.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.listDevices.Name = "listDevices";
-            this.listDevices.Size = new System.Drawing.Size(804, 105);
+            this.listDevices.Size = new System.Drawing.Size(398, 136);
             this.listDevices.TabIndex = 3;
             this.listDevices.UseCompatibleStateImageBehavior = false;
             this.listDevices.View = System.Windows.Forms.View.Details;
@@ -102,7 +101,7 @@
             // columnHeader3
             // 
             this.columnHeader3.Text = "Devices";
-            this.columnHeader3.Width = 315;
+            this.columnHeader3.Width = 450;
             // 
             // buttonReset
             // 
@@ -120,7 +119,7 @@
             // 
             this.buttonClear.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.buttonClear.ForeColor = System.Drawing.SystemColors.Window;
-            this.buttonClear.Location = new System.Drawing.Point(639, 2);
+            this.buttonClear.Location = new System.Drawing.Point(245, 4);
             this.buttonClear.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonClear.Name = "buttonClear";
             this.buttonClear.Size = new System.Drawing.Size(61, 38);
@@ -129,18 +128,9 @@
             this.buttonClear.UseVisualStyleBackColor = false;
             this.buttonClear.Click += new System.EventHandler(this.buttonClear_Click);
             // 
-            // textPacket
-            // 
-            this.textPacket.Location = new System.Drawing.Point(719, 186);
-            this.textPacket.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.textPacket.Multiline = true;
-            this.textPacket.Name = "textPacket";
-            this.textPacket.Size = new System.Drawing.Size(804, 340);
-            this.textPacket.TabIndex = 11;
-            // 
             // buttonStop
             // 
-            this.buttonStop.Location = new System.Drawing.Point(519, 532);
+            this.buttonStop.Location = new System.Drawing.Point(124, 530);
             this.buttonStop.Margin = new System.Windows.Forms.Padding(4);
             this.buttonStop.Name = "buttonStop";
             this.buttonStop.Size = new System.Drawing.Size(100, 23);
@@ -156,7 +146,6 @@
             this.BackColor = System.Drawing.SystemColors.ControlLight;
             this.ClientSize = new System.Drawing.Size(1548, 568);
             this.Controls.Add(this.buttonStop);
-            this.Controls.Add(this.textPacket);
             this.Controls.Add(this.buttonClear);
             this.Controls.Add(this.buttonReset);
             this.Controls.Add(this.listDevices);
@@ -167,7 +156,6 @@
             this.Text = "Form2";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form2_FormClosing);
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -180,7 +168,6 @@
         private System.Windows.Forms.ColumnHeader columnHeader3;
         private System.Windows.Forms.Button buttonReset;
         private System.Windows.Forms.Button buttonClear;
-        private System.Windows.Forms.TextBox textPacket;
         private System.Windows.Forms.ColumnHeader columnHeader4;
         private System.Windows.Forms.ColumnHeader columnHeader5;
         private System.Windows.Forms.Button buttonStop;
