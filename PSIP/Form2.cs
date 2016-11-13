@@ -27,61 +27,64 @@ namespace PSIP
         private List<Thread> thr_list;//all threads list
         private Hashtable htLog;
         private Boolean enabled;
-        private MacAddress myMAC;
-        private int downcntDev0;
-
+        private MacAddress myMAC1,myMAC2;
+        private int downcntDev0, upcntDev0, downcntDev1, upcntDev1
+            , downUdp0, upUdp0, downTcp0, upTcp0, downArp0, upArp0, downIcmp0, upIcmp0, downDropped0, upDropped0,
+            downUdp1, upUdp1, downTcp1, upTcp1, downArp1, upArp1, downIcmp1, upIcmp1, downDropped1, upDropped1;
+        private List<Packet> listDev0, listDev1;
+        private Hashtable hashDev0, hashDev1;
+            
         //private List<Packet> listDev0, listDev1;
         private PacketCommunicator dev0;
         private PacketCommunicator dev1;
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = 0, TIME = 10000, DEV0 = 0, DEV1 = 1;
+        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1, TIME = 10000, DEV0 = 0, DEV1 = 1;
 
         public Form2()
         {
-            //INIT
+            init();
+        }
+
+   
+
+        //INITIALIZATION
+        public void init()
+        {
             InitializeComponent();
             Show();
             allDevices = LivePacketDevice.AllLocalMachine;
             thr_list = new List<Thread>();
             htLog = new Hashtable();
+            downcntDev0 = upcntDev0 = downcntDev1 = upcntDev1 =
+                downUdp0 = upUdp0 = downTcp0 = upTcp0 = downArp0 = upArp0 = downIcmp0 = upIcmp0 = downDropped0 = upDropped0 =
+                downUdp1 = upUdp1 = downTcp1 = upTcp1 = downArp1 = upArp1 = downIcmp1 = upIcmp1 = downDropped1 = upDropped1 = 0;
             enabled = false;
-            try
-            {
-                myMAC = new MacAddress(getMyMAC().ToString());
-                this.Text = (myMAC.ToString());
-            }
-            catch
-            {
-                MessageBox.Show("Physical address of current device not found!");
-                this.Text = ("No physical address!");
-            }
 
-            downcntDev0 = 0;
-
-            foreach (LivePacketDevice row in allDevices)
-            {
-                listDevices.BeginInvoke(new Action(() => listDevices.Items.Add(new ListViewItem(row.Description))));
-            }
-            
             //open communcators
             dev0 = allDevices[DEV0].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving0));
             thr_list[0].Start();
-            /*
+
             dev1 = allDevices[DEV1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
             thr_list.Add(new Thread(Receiving1));
             thr_list[1].Start();
-            */
-            //listDev0 = new List<Packet>();
-            //listDev1 = new List<Packet>();
-        
+
+            myMAC1 = PcapDotNet.Core.Extensions.LivePacketDeviceExtensions.GetMacAddress(allDevices[DEV0]);
+            myMAC2 = PcapDotNet.Core.Extensions.LivePacketDeviceExtensions.GetMacAddress(allDevices[DEV1]);
+            this.Text = (myMAC1.ToString() + " - " + myMAC2.ToString());
+
+            listDev0 = new List<Packet>();
+            listDev1 = new List<Packet>();
+            hashDev0 = new Hashtable();
+            hashDev1 = new Hashtable();
+
         }
 
-        //ADD MAC ADDRESS WITH CALLBACK (uniq)
+        //---------------------------------------------MAC ADDRESS HANDLING------------------------------------------
         delegate void callbackMACdev0(Packet packet);
         private void addMACdev0(Packet packet)
         {
-            if(packet.Ethernet.Source.Equals(myMAC))
+            if (packet.Ethernet.Source.Equals(myMAC1) || packet.Ethernet.Source.Equals(myMAC2))//check if its not MAC of an actual device (switch)
             {
                 return;
             }
@@ -95,7 +98,6 @@ namespace PSIP
                 int key = packet.Ethernet.Source.GetHashCode();
                 if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
-
                     ListViewItem SrcMac = new ListViewItem("0");//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
@@ -103,8 +105,6 @@ namespace PSIP
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
-                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
-
                 }
                 else
                 {
@@ -118,13 +118,16 @@ namespace PSIP
                     //create the new log
                     htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
-                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
                 }
             }
         }
         delegate void callbackMACdev1(Packet packet);
         private void addMACdev1(Packet packet)
         {
+            if (packet.Ethernet.Source.Equals(myMAC1) || packet.Ethernet.Source.Equals(myMAC2))
+            {
+                return;
+            }
             if (mac_table.InvokeRequired)
             {
                 callbackMACdev1 d = new callbackMACdev1(addMACdev1);
@@ -143,7 +146,6 @@ namespace PSIP
 
                     Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
-                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
 
                 }
                 else
@@ -158,31 +160,34 @@ namespace PSIP
                     //create the new log
                     htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
-                    //textPacket.AppendText(packet.Ethernet.ToHexadecimalString() + "\n\n---------------");
                 }
-
-
             }
         }
 
+        //------------------------------------------PACKET HANDLERS---------------------------------------------
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         private void PacketHandler0(Packet packet)
         {
             if (enabled)
             {
-                downcntDev0++;
-                textPacket.BeginInvoke(new Action(() => textPacket.Text = ("Received:" + downcntDev0.ToString())));
+                statDown0();
+                statDownUDP0();
+                statDownTCP0();
+                statDownARP0();
+                statDownICMP0();
                 addMACdev0(packet);
-                /*
-                foreach(Packet row in listDev0)
+                int key = packet.GetHashCode();
+                if ( hashDev1[key]!=null )
                 {
-                    if (row.Equals(packet))
-                    {
-                        return;
-                    }
+                    return;
                 }
-                listDev0.Add(packet);
-                dev1.SendPacket(packet);*/
+                hashDev1.Add(key, packet);
+                dev1.SendPacket(packet);
+                statUp0();
+                statUpUDP0();
+                statUpTCP0();
+                statUpARP0();
+                statUpICMP0();
             }
         }
 
@@ -191,41 +196,35 @@ namespace PSIP
         {
             if (enabled)
             {
+                statDown1();
+                statDownUDP1();
+                statDownTCP1();
+                statDownARP1();
+                statDownICMP1();
                 addMACdev1(packet);
-                /*foreach (Packet row in listDev0)
+                int key = packet.GetHashCode();
+                if (hashDev0[key] != null)
                 {
-                    if (row.Equals(packet))
-                    {
-                        return;
-                    }
+                    return;
                 }
-                listDev1.Add(packet);
-                dev0.SendPacket(packet);*/
+                hashDev0.Add(key, packet);
+                dev0.SendPacket(packet);
+                statUp1();
+                statUpUDP1();
+                statUpTCP1();
+                statUpARP1();
+                statUpICMP1();
             }
         }
-        //FRAME RECEIVING
+        //-------------------------------------------RECEIVING FUNCTIONS--------------------------------------------
         private void Receiving0()
         {
             dev0.ReceivePackets(AMOUNT, PacketHandler0);
         }
 
-        private void Receiving1()//i am not really using this function in this version
+        private void Receiving1()
         {
             dev1.ReceivePackets(AMOUNT, PacketHandler1);
-        }
-        //GET MY MAC ADDRESS
-        public string getMyMAC()
-        {
-            var macAddr =
-            (
-                from nic in NetworkInterface.GetAllNetworkInterfaces()
-                where nic.OperationalStatus == OperationalStatus.Up
-                select nic.GetPhysicalAddress().ToString()
-            ).FirstOrDefault();
-            var regex = "(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})";
-            var replace = "$1:$2:$3:$4:$5:$6";
-            var newformat = Regex.Replace(macAddr, regex, replace);
-            return newformat.ToString();
         }
 
         //-----------------------------------------------------------------------------------------
@@ -250,5 +249,286 @@ namespace PSIP
         {
             Environment.Exit(0);
         }
+
+        private void labDown1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void labDev0_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label10_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void labUpARP0_Click(object sender, EventArgs e)
+        {
+
+        }
+
+
+        //------------------------------------------STATS---------------------------------------------
+        public void statDown0()
+        {
+            downcntDev0++;
+            if (labDown0.InvokeRequired)
+            {
+                labDown0.BeginInvoke((MethodInvoker)delegate() { labDown0.Text = downcntDev0.ToString(); ;});
+            }
+            else
+            {
+                labDown0.Text = downcntDev0.ToString();
+            }
+        }
+        public void statDown1()
+        {
+            downcntDev1++;
+            if (labDown0.InvokeRequired)
+            {
+                labDown1.BeginInvoke((MethodInvoker)delegate() { labDown1.Text = downcntDev1.ToString(); ;});
+            }
+            else
+            {
+                labDown1.Text = downcntDev1.ToString();
+            }
+        }
+        public void statUp0()
+        {
+            upcntDev0++;
+            if (labUp0.InvokeRequired)
+            {
+                labUp0.BeginInvoke((MethodInvoker)delegate() { labUp0.Text = upcntDev0.ToString(); ;});
+            }
+            else
+            {
+                labUp0.Text = upcntDev0.ToString();
+            }
+        }
+        public void statUp1()
+        {
+            upcntDev1++;
+            if (labUp1.InvokeRequired)
+            {
+                labUp1.BeginInvoke((MethodInvoker)delegate() { labUp1.Text = upcntDev1.ToString(); ;});
+            }
+            else
+            {
+                labDown1.Text = upcntDev1.ToString();
+            }
+        }
+
+        //-----------PROTOCOLS - DEV0
+        //UDP
+        public void statUpUDP0()
+        {
+            upUdp0++;
+            if (labUpUDP0.InvokeRequired)
+            {
+                labUpUDP0.BeginInvoke((MethodInvoker)delegate() { labUpUDP0.Text = upUdp0.ToString(); ;});
+            }
+            else
+            {
+                labUpUDP0.Text = upUdp0.ToString();
+            }
+        }
+        public void statDownUDP0()
+        {
+            downUdp0++;
+            if (labDownUDP0.InvokeRequired)
+            {
+                labDownUDP0.BeginInvoke((MethodInvoker)delegate() { labDownUDP0.Text = downUdp0.ToString(); ;});
+            }
+            else
+            {
+                labDownUDP0.Text = downUdp0.ToString();
+            }
+        }
+        //TCP
+        public void statUpTCP0()
+        {
+            upTcp0++;
+            if (labUpTCP0.InvokeRequired)
+            {
+                labUpTCP0.BeginInvoke((MethodInvoker)delegate() { labUpTCP0.Text = upTcp0.ToString(); ;});
+            }
+            else
+            {
+                labUpTCP0.Text = upTcp0.ToString();
+            }
+        }
+        public void statDownTCP0()
+        {
+            downTcp0++;
+            if (labDownTCP0.InvokeRequired)
+            {
+                labDownTCP0.BeginInvoke((MethodInvoker)delegate() { labDownTCP0.Text = downTcp0.ToString(); ;});
+            }
+            else
+            {
+                labDownTCP0.Text = downTcp0.ToString();
+            }
+        }
+        //ARP
+        public void statUpARP0()
+        {
+            upArp0++;
+            if (labUpARP0.InvokeRequired)
+            {
+                labUpARP0.BeginInvoke((MethodInvoker)delegate() { labUpARP0.Text = upArp0.ToString(); ;});
+            }
+            else
+            {
+                labUpARP0.Text = upArp0.ToString();
+            }
+        }
+        public void statDownARP0()
+        {
+            downArp0++;
+            if (labDownARP0.InvokeRequired)
+            {
+                labDownARP0.BeginInvoke((MethodInvoker)delegate() { labDownARP0.Text = downArp0.ToString(); ;});
+            }
+            else
+            {
+                labDownARP0.Text = downArp0.ToString();
+            }
+        }
+        //ICMP
+        public void statUpICMP0()
+        {
+            upIcmp0++;
+            if (labUpICMP0.InvokeRequired)
+            {
+                labUpICMP0.BeginInvoke((MethodInvoker)delegate() { labUpICMP0.Text = upIcmp0.ToString(); ;});
+            }
+            else
+            {
+                labUpICMP0.Text = upIcmp0.ToString();
+            }
+        }
+        public void statDownICMP0()
+        {
+            downIcmp0++;
+            if (labDownICMP0.InvokeRequired)
+            {
+                labDownICMP0.BeginInvoke((MethodInvoker)delegate() { labDownICMP0.Text = downIcmp0.ToString(); ;});
+            }
+            else
+            {
+                labDownICMP0.Text = downIcmp0.ToString();
+            }
+        }
+
+        //-----------PROTOCOLS - DEV1
+        //UDP
+        public void statUpUDP1()
+        {
+            upUdp1++;
+            if (labUpUDP1.InvokeRequired)
+            {
+                labUpUDP1.BeginInvoke((MethodInvoker)delegate() { labUpUDP1.Text = upUdp1.ToString(); ;});
+            }
+            else
+            {
+                labUpUDP1.Text = upUdp1.ToString();
+            }
+        }
+        public void statDownUDP1()
+        {
+            downUdp1++;
+            if (labDownUDP1.InvokeRequired)
+            {
+                labDownUDP1.BeginInvoke((MethodInvoker)delegate() { labDownUDP1.Text = downUdp1.ToString(); ;});
+            }
+            else
+            {
+                labDownUDP1.Text = downUdp1.ToString();
+            }
+        }
+        //TCP
+        public void statUpTCP1()
+        {
+            upTcp1++;
+            if (labUpTCP1.InvokeRequired)
+            {
+                labUpTCP1.BeginInvoke((MethodInvoker)delegate() { labUpTCP1.Text = upTcp1.ToString(); ;});
+            }
+            else
+            {
+                labUpTCP1.Text = upTcp1.ToString();
+            }
+        }
+        public void statDownTCP1()
+        {
+            downTcp1++;
+            if (labDownTCP1.InvokeRequired)
+            {
+                labDownTCP1.BeginInvoke((MethodInvoker)delegate() { labDownTCP1.Text = downTcp1.ToString(); ;});
+            }
+            else
+            {
+                labDownTCP1.Text = downTcp1.ToString();
+            }
+        }
+        //ARP
+        public void statUpARP1()
+        {
+            upArp1++;
+            if (labUpARP1.InvokeRequired)
+            {
+                labUpARP1.BeginInvoke((MethodInvoker)delegate() { labUpARP1.Text = upArp1.ToString(); ;});
+            }
+            else
+            {
+                labUpARP1.Text = upArp1.ToString();
+            }
+        }
+        public void statDownARP1()
+        {
+            downArp1++;
+            if (labDownARP1.InvokeRequired)
+            {
+                labDownARP1.BeginInvoke((MethodInvoker)delegate() { labDownARP1.Text = downArp1.ToString(); ;});
+            }
+            else
+            {
+                labDownARP1.Text = downArp1.ToString();
+            }
+        }
+        //ICMP
+        public void statUpICMP1()
+        {
+            upIcmp1++;
+            if (labUpICMP1.InvokeRequired)
+            {
+                labUpICMP1.BeginInvoke((MethodInvoker)delegate() { labUpICMP1.Text = upIcmp1.ToString(); ;});
+            }
+            else
+            {
+                labUpICMP1.Text = upIcmp1.ToString();
+            }
+        }
+        public void statDownICMP1()
+        {
+            downIcmp1++;
+            if (labDownICMP1.InvokeRequired)
+            {
+                labDownICMP1.BeginInvoke((MethodInvoker)delegate() { labDownICMP1.Text = downIcmp1.ToString(); ;});
+            }
+            else
+            {
+                labDownICMP1.Text = downIcmp1.ToString();
+            }
+        }
     }
 }
+
