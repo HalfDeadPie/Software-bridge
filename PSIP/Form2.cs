@@ -27,25 +27,23 @@ namespace PSIP
         private List<Thread> thr_list;//all threads list
         private Hashtable htLog;
         private Boolean enabled;
-        private MacAddress myMAC1,myMAC2;
+        private MacAddress myMAC1, myMAC2;
         private int downcntDev0, upcntDev0, downcntDev1, upcntDev1
             , downUdp0, upUdp0, downTcp0, upTcp0, downArp0, upArp0, downIcmp0, upIcmp0, downDropped0, upDropped0,
             downUdp1, upUdp1, downTcp1, upTcp1, downArp1, upArp1, downIcmp1, upIcmp1, downDropped1, upDropped1;
-        private List<Packet> listDev0, listDev1;
         private Hashtable hashDev0, hashDev1;
-            
-        //private List<Packet> listDev0, listDev1;
+        private List<Filter> filters;
+
         private PacketCommunicator dev0;
         private PacketCommunicator dev1;
         //CONSTANTS
-        private const int SNAPSHOT = 65536, TIMEOUT = 1000, AMOUNT = -1, TIME = 10000, DEV0 = 0, DEV1 = 1;
+        private const int SNAPSHOT = 65536, TIMEOUT = 10, AMOUNT = 0, TIME = 10000, DEV0 = 0, DEV1 = 2;
 
         public Form2()
         {
             init();
         }
 
-   
 
         //INITIALIZATION
         public void init()
@@ -61,11 +59,11 @@ namespace PSIP
             enabled = false;
 
             //open communcators
-            dev0 = allDevices[DEV0].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
+            dev0 = allDevices[DEV0].Open(SNAPSHOT, PacketDeviceOpenAttributes.Promiscuous | PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT);
             thr_list.Add(new Thread(Receiving0));
             thr_list[0].Start();
 
-            dev1 = allDevices[DEV1].Open(SNAPSHOT, PacketDeviceOpenAttributes.NoCaptureLocal | PacketDeviceOpenAttributes.Promiscuous, TIMEOUT);
+            dev1 = allDevices[DEV1].Open(SNAPSHOT, PacketDeviceOpenAttributes.Promiscuous | PacketDeviceOpenAttributes.NoCaptureLocal, TIMEOUT);
             thr_list.Add(new Thread(Receiving1));
             thr_list[1].Start();
 
@@ -73,13 +71,42 @@ namespace PSIP
             myMAC2 = PcapDotNet.Core.Extensions.LivePacketDeviceExtensions.GetMacAddress(allDevices[DEV1]);
             this.Text = (myMAC1.ToString() + " - " + myMAC2.ToString());
 
-            listDev0 = new List<Packet>();
-            listDev1 = new List<Packet>();
             hashDev0 = new Hashtable();
             hashDev1 = new Hashtable();
-
+            filters = new List<Filter>();
         }
 
+        //GET PORT FROM MAC HASH TABLE
+        public int getPort(MacAddress mac)
+        {
+            int key = mac.GetHashCode();
+            int port = -1;
+            if (htLog[key] != null)
+            {
+                Log temp = (Log)htLog[key];
+                port = temp.Port;
+            }
+            return port;
+
+        }
+        //IS PACKET DUPLICATE FROM HASHDEV1?
+        public Boolean isDuplicate1(Packet packet)
+        {
+            if (hashDev1[packet.GetHashCode()] != null)
+            {
+                return true;
+            }
+            return false;
+        }
+        //IS PACKET DUPLICATE FROM HASHDEV0?
+        public Boolean isDuplicate0(Packet packet)
+        {
+            if (hashDev0[packet.GetHashCode()] != null)
+            {
+                return true;
+            }
+            return false;
+        }
         //---------------------------------------------MAC ADDRESS HANDLING------------------------------------------
         delegate void callbackMACdev0(Packet packet);
         private void addMACdev0(Packet packet)
@@ -98,17 +125,17 @@ namespace PSIP
                 int key = packet.Ethernet.Source.GetHashCode();
                 if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
-                    ListViewItem SrcMac = new ListViewItem("0");//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem(DEV0.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
                     mac_table.Items.Add(SrcMac);
 
-                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
+                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, DEV0, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
                 }
                 else
                 {
-                    ListViewItem SrcMac = new ListViewItem("0");//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem(DEV0.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
 
@@ -116,7 +143,7 @@ namespace PSIP
                     temp.Item.Remove();//here I remove address from ListView of MAC
                     htLog.Remove(key);
                     //create the new log
-                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
+                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, DEV0, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
                 }
             }
@@ -139,18 +166,18 @@ namespace PSIP
                 if (htLog[key] == null)//ak tuto MAC nemam este v tabulke
                 {
 
-                    ListViewItem SrcMac = new ListViewItem("1");//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem(DEV1.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
                     mac_table.Items.Add(SrcMac);
 
-                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac);//create the new log
+                    Log log = new Log(packet.Ethernet.Source, packet.Timestamp,DEV1, TIME, htLog, SrcMac);//create the new log
                     htLog.Add(key, log);//add log to hashtable
 
                 }
                 else
                 {
-                    ListViewItem SrcMac = new ListViewItem("1");//adding to GUI table
+                    ListViewItem SrcMac = new ListViewItem(DEV1.ToString());//adding to GUI table
                     SrcMac.SubItems.Add(packet.Ethernet.Source.ToString());
                     SrcMac.SubItems.Add(packet.Timestamp.ToLongTimeString());
 
@@ -158,7 +185,7 @@ namespace PSIP
                     temp.Item.Remove();//here I remove address from ListView of MAC
                     htLog.Remove(key);
                     //create the new log
-                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, 1, TIME, htLog, SrcMac));//add log to hashtable1
+                    htLog.Add(key, new Log(packet.Ethernet.Source, packet.Timestamp, DEV1, TIME, htLog, SrcMac));//add log to hashtable1
                     mac_table.Items.Add(SrcMac);
                 }
             }
@@ -170,24 +197,24 @@ namespace PSIP
         {
             if (enabled)
             {
-                statDown0();
-                statDownUDP0();
-                statDownTCP0();
-                statDownARP0();
-                statDownICMP0();
-                addMACdev0(packet);
-                int key = packet.GetHashCode();
-                if ( hashDev1[key]!=null )
+                addMACdev0(packet);//add or actualize MAC and PORT
+                /*if (isDuplicate1(packet) == true)//check if it is not sended packet
                 {
                     return;
+                }*/
+                //hashDev1.Add(packet.GetHashCode(), packet);//add to hash table for uniq packets
+                //allStatsDown0(packet);
+                //dev1.SendPacket(packet);
+                if (getPort((MacAddress)packet.Ethernet.Destination) == DEV1)//check if this MAC is for port1
+                {
+                    dev1.SendPacket(packet);//send if port-MAC are common
+                    //allStatsUp0(packet);
                 }
-                hashDev1.Add(key, packet);
-                dev1.SendPacket(packet);
-                statUp0();
-                statUpUDP0();
-                statUpTCP0();
-                statUpARP0();
-                statUpICMP0();
+            }
+            else//drop
+            {
+                //statDownDropped0();
+                return;
             }
         }
 
@@ -196,24 +223,25 @@ namespace PSIP
         {
             if (enabled)
             {
-                statDown1();
-                statDownUDP1();
-                statDownTCP1();
-                statDownARP1();
-                statDownICMP1();
-                addMACdev1(packet);
-                int key = packet.GetHashCode();
-                if (hashDev0[key] != null)
+                addMACdev1(packet);//add or actualize MAC and PORT
+                /*if (isDuplicate0(packet) == true)
                 {
                     return;
+                }*/
+                //hashDev0.Add(packet.GetHashCode(), packet);
+
+                //allStatsDown1(packet);
+                //dev0.SendPacket(packet);
+                if (getPort((MacAddress)packet.Ethernet.Destination) == DEV0)//check if this MAC is for port1
+                {
+                    dev0.SendPacket(packet);
+                    //allStatsUp1(packet);
                 }
-                hashDev0.Add(key, packet);
-                dev0.SendPacket(packet);
-                statUp1();
-                statUpUDP1();
-                statUpTCP1();
-                statUpARP1();
-                statUpICMP1();
+            }
+            else
+            {
+                //statDownDropped1();
+                return;
             }
         }
         //-------------------------------------------RECEIVING FUNCTIONS--------------------------------------------
@@ -249,34 +277,94 @@ namespace PSIP
         {
             Environment.Exit(0);
         }
-
-        private void labDown1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Form2_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void labDev0_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label10_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void labUpARP0_Click(object sender, EventArgs e)
-        {
-
-        }
-
-
         //------------------------------------------STATS---------------------------------------------
+
+
+        //ALLSTATS
+        public void allStatsDown0(Packet packet)
+        {
+            statDown0();
+            if (packet.Ethernet.IpV4.Udp.IsValid == true)
+            {
+                statDownUDP0();
+            }
+            if (packet.Ethernet.IpV4.Tcp.IsValid == true)
+            {
+                statDownTCP0();
+            }
+            if (packet.Ethernet.Arp.IsValid == true)
+            {
+                statDownARP0();
+            }
+            if (packet.Ethernet.IpV4.Icmp.IsValid == true)
+            {
+                statDownICMP0();
+            }
+        }
+        public void allStatsUp0(Packet packet)
+        {
+            statUp0();
+            if (packet.Ethernet.IpV4.Udp.IsValid == true)
+            {
+                statUpUDP0();
+            }
+            if (packet.Ethernet.IpV4.Tcp.IsValid == true)
+            {
+                statUpTCP0();
+            }
+            if (packet.Ethernet.Arp.IsValid == true)
+            {
+                statUpARP0();
+            }
+            if (packet.Ethernet.IpV4.Icmp.IsValid == true)
+            {
+                statUpICMP0();
+            }
+        }
+
+        public void allStatsDown1(Packet packet)
+        {
+            statDown1();
+            if (packet.Ethernet.IpV4.Udp.IsValid == true)
+            {
+                statDownUDP1();
+            }
+            if (packet.Ethernet.IpV4.Tcp.IsValid == true)
+            {
+                statDownTCP1();
+            }
+            if (packet.Ethernet.Arp.IsValid == true)
+            {
+                statDownARP1();
+            }
+            if (packet.Ethernet.IpV4.Icmp.IsValid == true)
+            {
+                statDownICMP1();
+            }
+        }
+        public void allStatsUp1(Packet packet)
+        {
+            statUp1();
+            if (packet.Ethernet.IpV4.Udp.IsValid == true)
+            {
+                statUpUDP1();
+            }
+            if (packet.Ethernet.IpV4.Tcp.IsValid == true)
+            {
+                statUpTCP1();
+            }
+            if (packet.Ethernet.Arp.IsValid == true)
+            {
+                statUpARP1();
+            }
+            if (packet.Ethernet.IpV4.Icmp.IsValid == true)
+            {
+                statUpICMP1();
+            }
+        }
+
+
+        //DOWN-UP COUNTERS
         public void statDown0()
         {
             downcntDev0++;
@@ -325,7 +413,6 @@ namespace PSIP
                 labDown1.Text = upcntDev1.ToString();
             }
         }
-
         //-----------PROTOCOLS - DEV0
         //UDP
         public void statUpUDP0()
@@ -529,6 +616,89 @@ namespace PSIP
                 labDownICMP1.Text = downIcmp1.ToString();
             }
         }
+
+        //Dropped
+        public void statUpDropped1()
+        {
+            upDropped1++;
+            if (labUpDropped1.InvokeRequired)
+            {
+                labUpDropped1.BeginInvoke((MethodInvoker)delegate() { labUpDropped1.Text = upDropped1.ToString(); ;});
+            }
+            else
+            {
+                labUpDropped1.Text = upDropped1.ToString();
+            }
+        }
+        public void statDownDropped1()
+        {
+            downDropped1++;
+            if (labDownDropped1.InvokeRequired)
+            {
+                labDownDropped1.BeginInvoke((MethodInvoker)delegate() { labDownDropped1.Text = downDropped1.ToString(); ;});
+            }
+            else
+            {
+                labDownDropped1.Text = downDropped1.ToString();
+            }
+        }
+
+        //Dropped
+        public void statUpDropped0()
+        {
+            upDropped0++;
+            if (labUpDropped0.InvokeRequired)
+            {
+                labUpDropped0.BeginInvoke((MethodInvoker)delegate() { labUpDropped0.Text = upDropped0.ToString(); ;});
+            }
+            else
+            {
+                labUpDropped0.Text = upDropped0.ToString();
+            }
+        }
+        public void statDownDropped0()
+        {
+            downDropped0++;
+            if (labDownDropped0.InvokeRequired)
+            {
+                labDownDropped0.BeginInvoke((MethodInvoker)delegate() { labDownDropped0.Text = downDropped0.ToString(); ;});
+            }
+            else
+            {
+                labDownDropped0.Text = downDropped0.ToString();
+            }
+        }
+
+        private void filtering(Packet packet)
+        {
+            //Filter received = new Filter(received.SrcIP = packet.Ethernet.IpV4.Source.ToString());
+            //tento filter tu dokonci
+
+            foreach (Filter actual in filters)
+            {
+                
+            }
+        }
+
+        private void btnApply_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Filter filter = new Filter(filterSRCip.Text, filterDSTip.Text, filterSRCmac.Text, filterDSTmac.Text,
+                    filterUDP.Checked, filterTCP.Checked, filterARP.Checked, filterICMP.Checked);
+                filters.Add(filter);
+            }
+            catch
+            {
+                //snad tie nevyplnene nastavi na null
+            }
+        }
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            filters.Clear();
+        }
+
     }
 }
 

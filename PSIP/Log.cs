@@ -15,7 +15,7 @@ namespace PSIP
         //MAIN CONSTRUCTOR
         public Log(MacAddress MAC, DateTime timestamp, int port, int time, Hashtable ht, ListViewItem item)
         {
-            this.MAC = MAC;
+            this.mac = MAC;
             this.timestamp = timestamp;
             this.port = port;
             this.parent = ht;
@@ -51,11 +51,11 @@ namespace PSIP
         }
 
         //MACADDRESS
-        private MacAddress MAC;//mac address
-        public MacAddress MAC1
+        private MacAddress mac;//mac address
+        public MacAddress MAC
         {
-            get { return MAC; }
-            set { MAC = value; }
+            get { return mac; }
+            set { mac = value; }
         }
         //TIMESTAMP
         private DateTime timestamp;//time of last received
