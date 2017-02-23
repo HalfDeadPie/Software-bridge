@@ -46,8 +46,14 @@ namespace PSIP
         public System.Timers.Timer timer;
         private void OnTimedEvent(Object source, ElapsedEventArgs e)
         {
-            this.item.Remove();
-            this.parent.Remove(this);
+            lock (this.item)
+            { 
+                this.item.Remove();
+            }
+            lock (this.parent)
+            {
+                this.parent.Remove(this);
+            }
         }
 
         //MACADDRESS
